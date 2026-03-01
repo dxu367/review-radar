@@ -38,9 +38,9 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    const { matches } = await searchProduct(searchQuery);
+    const { matches, alternatives } = await searchProduct(searchQuery);
 
-    return NextResponse.json({ matches });
+    return NextResponse.json({ matches, alternatives });
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(

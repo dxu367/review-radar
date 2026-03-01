@@ -1,5 +1,5 @@
 import { getJson } from "serpapi";
-import { ProductMatch, Review, Retailer } from "./types";
+import { ProductMatch, Review, Retailer, AlternativeProduct } from "./types";
 
 const RETAILER_KEYWORDS: Record<Retailer, string[]> = {
   amazon: ["amazon"],
@@ -75,6 +75,7 @@ export async function lookupProductName(
 
 interface SearchResult {
   matches: ProductMatch[];
+  alternatives: AlternativeProduct[];
 }
 
 export async function searchProduct(query: string): Promise<SearchResult> {
@@ -119,7 +120,35 @@ export async function searchProduct(query: string): Promise<SearchResult> {
     if (seenRetailers.size === 3) break;
   }
 
-  return { matches };
+  // Collect alternative products from remaining results
+  const alternatives: AlternativeProduct[] = [];
+  const seenTitles = new Set(matches.map((m) => m.title.toLowerCase()));
+
+  for (const item of results) {
+    if (alternatives.length >= 8) break;
+
+    const title = item.title || "";
+    if (!title || seenTitles.has(title.toLowerCase())) continue;
+
+    seenTitles.add(title.toLowerCase());
+    const retailer =
+      detectRetailerFromSource(item.source || "") ||
+      detectRetailerFromLink(item.link || item.product_link || "");
+
+    alternatives.push({
+      title,
+      price: item.extracted_price
+        ? `$${item.extracted_price}`
+        : item.price || "N/A",
+      thumbnail: item.thumbnail || null,
+      link: item.link || item.product_link || "",
+      retailer: retailer || item.source || "Other",
+      rating: item.rating || null,
+      reviewCount: item.reviews || null,
+    });
+  }
+
+  return { matches, alternatives };
 }
 
 export async function getProductReviews(

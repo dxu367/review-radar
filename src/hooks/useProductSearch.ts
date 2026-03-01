@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { ProductMatch, Review, AnalysisResult, PricePoint } from "@/lib/types";
+import { ProductMatch, Review, AnalysisResult, PricePoint, AlternativeProduct } from "@/lib/types";
 import { parseAnalysisResult } from "@/lib/parse-analysis";
 
 export type SearchStep = "idle" | "searching" | "fetching_reviews" | "analyzing" | "done" | "error";
@@ -9,6 +9,7 @@ export type SearchStep = "idle" | "searching" | "fetching_reviews" | "analyzing"
 interface SearchState {
   step: SearchStep;
   matches: ProductMatch[];
+  alternatives: AlternativeProduct[];
   reviews: Review[];
   analysis: AnalysisResult | null;
   error: string | null;
@@ -20,6 +21,7 @@ export function useProductSearch() {
   const [state, setState] = useState<SearchState>({
     step: "idle",
     matches: [],
+    alternatives: [],
     reviews: [],
     analysis: null,
     error: null,
@@ -31,6 +33,7 @@ export function useProductSearch() {
     setState({
       step: "searching",
       matches: [],
+      alternatives: [],
       reviews: [],
       analysis: null,
       error: null,
@@ -47,7 +50,7 @@ export function useProductSearch() {
       });
 
       if (!searchRes.ok) throw new Error("Search failed");
-      const { matches } = await searchRes.json();
+      const { matches, alternatives } = await searchRes.json();
 
       if (matches.length === 0) {
         setState((s) => ({
@@ -58,7 +61,7 @@ export function useProductSearch() {
         return;
       }
 
-      setState((s) => ({ ...s, matches, step: "fetching_reviews" }));
+      setState((s) => ({ ...s, matches, alternatives: alternatives || [], step: "fetching_reviews" }));
 
       // Record prices and fetch history in background
       const productTitle = matches[0]?.title || query;

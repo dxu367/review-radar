@@ -44,6 +44,16 @@ export interface PricePoint {
   recorded_at: string;
 }
 
+export interface AlternativeProduct {
+  title: string;
+  price: string;
+  thumbnail: string | null;
+  link: string;
+  retailer: string;
+  rating: number | null;
+  reviewCount: number | null;
+}
+
 export interface AnalysisResult {
   productName: string;
   overallScore: number;

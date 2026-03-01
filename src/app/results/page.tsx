@@ -10,13 +10,14 @@ import ResultsCard from "@/components/ResultsCard";
 import RetailerBreakdown from "@/components/RetailerBreakdown";
 import ReviewSummary from "@/components/ReviewSummary";
 import PriceHistoryChart from "@/components/PriceHistoryChart";
+import AlternativeProducts from "@/components/AlternativeProducts";
 import { Radar, AlertCircle } from "lucide-react";
 import Link from "next/link";
 
 function ResultsContent() {
   const searchParams = useSearchParams();
   const query = searchParams.get("q") || "";
-  const { step, matches, analysis, error, streamedText, priceHistory, search } =
+  const { step, matches, alternatives, analysis, error, streamedText, priceHistory, search } =
     useProductSearch();
 
   useEffect(() => {
@@ -61,6 +62,10 @@ function ResultsContent() {
         )}
 
         {matches.length > 0 && <ProductHeader matches={matches} searchQuery={query} />}
+
+        {alternatives.length > 0 && (
+          <AlternativeProducts alternatives={alternatives} onSelect={handleNewSearch} />
+        )}
 
         {priceHistory.length > 0 && (
           <PriceHistoryChart priceHistory={priceHistory} />
