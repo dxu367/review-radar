@@ -1,65 +1,97 @@
-import Image from "next/image";
+"use client";
+
+import { useRouter } from "next/navigation";
+import SearchBar from "@/components/SearchBar";
+import { Radar, ShoppingCart, Brain, BarChart3 } from "lucide-react";
 
 export default function Home() {
+  const router = useRouter();
+
+  const handleSearch = (query: string) => {
+    router.push(`/results?q=${encodeURIComponent(query)}`);
+  };
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <main className="min-h-screen flex flex-col">
+      {/* Hero */}
+      <div className="flex-1 flex flex-col items-center justify-center px-6 py-20">
+        <div className="flex items-center gap-3 mb-6">
+          <Radar className="w-10 h-10 text-blue-600" />
+          <h1 className="text-4xl font-bold text-gray-900">ReviewRadar</h1>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+        <p className="text-lg text-gray-500 mb-8 text-center max-w-lg">
+          AI-powered review aggregation across Amazon, Best Buy, and Walmart.
+          Get the real picture before you buy.
+        </p>
+        <SearchBar onSearch={handleSearch} isLoading={false} />
+
+        {/* Example searches */}
+        <div className="mt-6 flex flex-wrap gap-2 justify-center">
+          {[
+            "Sony WH-1000XM5 headphones",
+            "iPad Air M2",
+            "Dyson V15 vacuum",
+          ].map((example) => (
+            <button
+              key={example}
+              onClick={() => handleSearch(example)}
+              className="text-sm text-blue-600 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-full transition-colors"
+            >
+              {example}
+            </button>
+          ))}
         </div>
-      </main>
-    </div>
+      </div>
+
+      {/* How it works */}
+      <div className="bg-white border-t border-gray-100 px-6 py-16">
+        <h2 className="text-2xl font-bold text-gray-900 text-center mb-10">
+          How it works
+        </h2>
+        <div className="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div className="text-center">
+            <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center mx-auto mb-4">
+              <ShoppingCart className="w-6 h-6 text-blue-600" />
+            </div>
+            <h3 className="font-semibold text-gray-900 mb-2">
+              1. Search or paste a URL
+            </h3>
+            <p className="text-sm text-gray-500">
+              Enter a product name or paste a link from Amazon, Best Buy, or
+              Walmart.
+            </p>
+          </div>
+          <div className="text-center">
+            <div className="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center mx-auto mb-4">
+              <Brain className="w-6 h-6 text-purple-600" />
+            </div>
+            <h3 className="font-semibold text-gray-900 mb-2">
+              2. AI reads all reviews
+            </h3>
+            <p className="text-sm text-gray-500">
+              We collect reviews from multiple retailers and analyze them with
+              Claude AI.
+            </p>
+          </div>
+          <div className="text-center">
+            <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center mx-auto mb-4">
+              <BarChart3 className="w-6 h-6 text-green-600" />
+            </div>
+            <h3 className="font-semibold text-gray-900 mb-2">
+              3. Get the full picture
+            </h3>
+            <p className="text-sm text-gray-500">
+              See a consolidated score, pros/cons, and per-retailer breakdown at
+              a glance.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Footer */}
+      <footer className="text-center py-6 text-sm text-gray-400">
+        Built with Next.js and Claude AI
+      </footer>
+    </main>
   );
 }
