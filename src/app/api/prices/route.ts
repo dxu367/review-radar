@@ -4,9 +4,12 @@ import {
   recordPrice,
   getPriceHistory,
   seedPriceHistory,
+  initDb,
 } from "@/lib/db";
 
 export async function GET(request: NextRequest) {
+  await initDb();
+
   const product = request.nextUrl.searchParams.get("product");
   if (!product) {
     return NextResponse.json(
@@ -16,7 +19,7 @@ export async function GET(request: NextRequest) {
   }
 
   const productKey = normalizeProductKey(product);
-  const history = getPriceHistory(productKey);
+  const history = await getPriceHistory(productKey);
 
   return NextResponse.json({ history });
 }
@@ -28,6 +31,8 @@ interface PriceEntry {
 }
 
 export async function POST(request: NextRequest) {
+  await initDb();
+
   const body = await request.json();
   const { prices } = body as { prices: PriceEntry[] };
 
@@ -40,12 +45,8 @@ export async function POST(request: NextRequest) {
 
   for (const entry of prices) {
     const productKey = normalizeProductKey(entry.title);
-
-    // Seed history if this is the first time seeing this product+retailer
-    seedPriceHistory(productKey, entry.retailer, entry.price);
-
-    // Record the current real price
-    recordPrice(productKey, entry.retailer, entry.price);
+    await seedPriceHistory(productKey, entry.retailer, entry.price);
+    await recordPrice(productKey, entry.retailer, entry.price);
   }
 
   return NextResponse.json({ ok: true });

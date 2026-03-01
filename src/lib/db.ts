@@ -1,45 +1,48 @@
-import Database from "better-sqlite3";
-import path from "path";
+import { createClient, type Client } from "@libsql/client";
 
-const DB_PATH = path.join(process.cwd(), "data", "prices.db");
+let client: Client | null = null;
 
-let db: Database.Database | null = null;
-
-function getDb(): Database.Database {
-  if (!db) {
-    db = new Database(DB_PATH);
-    db.pragma("journal_mode = WAL");
-    db.exec(`
-      CREATE TABLE IF NOT EXISTS price_history (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        product_key TEXT NOT NULL,
-        retailer TEXT NOT NULL,
-        price REAL NOT NULL,
-        recorded_at TEXT NOT NULL
-      )
-    `);
-    db.exec(`
-      CREATE INDEX IF NOT EXISTS idx_price_history_product
-      ON price_history (product_key, recorded_at)
-    `);
+function getDb(): Client {
+  if (!client) {
+    client = createClient({
+      url: process.env.TURSO_DATABASE_URL!,
+      authToken: process.env.TURSO_AUTH_TOKEN!,
+    });
   }
-  return db;
+  return client;
+}
+
+export async function initDb(): Promise<void> {
+  const db = getDb();
+  await db.execute(`
+    CREATE TABLE IF NOT EXISTS price_history (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      product_key TEXT NOT NULL,
+      retailer TEXT NOT NULL,
+      price REAL NOT NULL,
+      recorded_at TEXT NOT NULL
+    )
+  `);
+  await db.execute(`
+    CREATE INDEX IF NOT EXISTS idx_price_history_product
+    ON price_history (product_key, recorded_at)
+  `);
 }
 
 export function normalizeProductKey(title: string): string {
   return title.toLowerCase().trim().replace(/\s+/g, " ");
 }
 
-export function recordPrice(
+export async function recordPrice(
   productKey: string,
   retailer: string,
   price: number
-): void {
-  const database = getDb();
-  const stmt = database.prepare(
-    "INSERT INTO price_history (product_key, retailer, price, recorded_at) VALUES (?, ?, ?, ?)"
-  );
-  stmt.run(productKey, retailer, price, new Date().toISOString());
+): Promise<void> {
+  const db = getDb();
+  await db.execute({
+    sql: "INSERT INTO price_history (product_key, retailer, price, recorded_at) VALUES (?, ?, ?, ?)",
+    args: [productKey, retailer, price, new Date().toISOString()],
+  });
 }
 
 export interface PriceRow {
@@ -50,56 +53,52 @@ export interface PriceRow {
   recorded_at: string;
 }
 
-export function getPriceHistory(productKey: string): PriceRow[] {
-  const database = getDb();
-  const stmt = database.prepare(
-    "SELECT * FROM price_history WHERE product_key = ? ORDER BY recorded_at ASC"
-  );
-  return stmt.all(productKey) as PriceRow[];
+export async function getPriceHistory(productKey: string): Promise<PriceRow[]> {
+  const db = getDb();
+  const result = await db.execute({
+    sql: "SELECT * FROM price_history WHERE product_key = ? ORDER BY recorded_at ASC",
+    args: [productKey],
+  });
+  return result.rows as unknown as PriceRow[];
 }
 
-export function seedPriceHistory(
+export async function seedPriceHistory(
   productKey: string,
   retailer: string,
   currentPrice: number
-): void {
-  const database = getDb();
+): Promise<void> {
+  const db = getDb();
 
-  // Check if history already exists for this product+retailer
-  const existing = database
-    .prepare(
-      "SELECT COUNT(*) as count FROM price_history WHERE product_key = ? AND retailer = ?"
-    )
-    .get(productKey, retailer) as { count: number };
+  const existing = await db.execute({
+    sql: "SELECT COUNT(*) as count FROM price_history WHERE product_key = ? AND retailer = ?",
+    args: [productKey, retailer],
+  });
 
-  if (existing.count > 0) return;
+  if ((existing.rows[0].count as number) > 0) return;
 
-  // Generate 90 days of simulated price history
   const now = new Date();
-  const insert = database.prepare(
-    "INSERT INTO price_history (product_key, retailer, price, recorded_at) VALUES (?, ?, ?, ?)"
-  );
+  const statements = [];
 
-  const insertMany = database.transaction(() => {
-    for (let daysAgo = 90; daysAgo >= 1; daysAgo--) {
-      const date = new Date(now);
-      date.setDate(date.getDate() - daysAgo);
+  for (let daysAgo = 90; daysAgo >= 1; daysAgo--) {
+    const date = new Date(now);
+    date.setDate(date.getDate() - daysAgo);
 
-      // Random fluctuation: +/- up to 8% of current price
-      const fluctuation = (Math.random() - 0.5) * 0.16 * currentPrice;
-      const price = Math.max(
-        currentPrice * 0.85,
-        Math.min(currentPrice * 1.15, currentPrice + fluctuation)
-      );
+    const fluctuation = (Math.random() - 0.5) * 0.16 * currentPrice;
+    const price = Math.max(
+      currentPrice * 0.85,
+      Math.min(currentPrice * 1.15, currentPrice + fluctuation)
+    );
 
-      insert.run(
+    statements.push({
+      sql: "INSERT INTO price_history (product_key, retailer, price, recorded_at) VALUES (?, ?, ?, ?)",
+      args: [
         productKey,
         retailer,
         Math.round(price * 100) / 100,
-        date.toISOString()
-      );
-    }
-  });
+        date.toISOString(),
+      ],
+    });
+  }
 
-  insertMany();
+  await db.batch(statements);
 }
