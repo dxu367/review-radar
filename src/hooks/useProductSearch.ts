@@ -55,8 +55,11 @@ export function useProductSearch() {
       if (matches.length === 0) {
         setState((s) => ({
           ...s,
-          step: "error",
-          error: "No products found. Try a different search term.",
+          step: "done",
+          alternatives: alternatives || [],
+          error: alternatives?.length
+            ? null
+            : "No products found. Try a different search term.",
         }));
         return;
       }
