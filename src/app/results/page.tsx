@@ -64,7 +64,11 @@ function ResultsContent() {
         {matches.length > 0 && <ProductHeader matches={matches} searchQuery={query} />}
 
         {alternatives.length > 0 && (
-          <AlternativeProducts alternatives={alternatives} onSelect={handleNewSearch} />
+          <AlternativeProducts
+            alternatives={alternatives}
+            onSelect={handleNewSearch}
+            linkOut={matches.length === 0}
+          />
         )}
 
         {priceHistory.length > 0 && (
